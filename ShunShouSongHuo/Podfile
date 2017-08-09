@@ -1,0 +1,13 @@
+platform:ios, ‘8.0’
+target 'ShunShouSongHuo' do
+pod 'SDWebImage', '~> 3.7.5'
+pod 'SSKeychain', '~> 1.4.0'
+pod "Qiniu", :git => 'https://github.com/qiniu/objc-sdk.git', :branch => 'AFNetworking-3.x'
+pod 'JSONModel', '~> 1.2.0'
+pod 'MJRefresh', '~> 3.1.0'
+pod 'AMapLocation'
+pod 'AMapNavi'
+pod 'AMapSearch'
+pod 'FDFullscreenPopGesture'
+pod 'SDAutoLayout'
+end

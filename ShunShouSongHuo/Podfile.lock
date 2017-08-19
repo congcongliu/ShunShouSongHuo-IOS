@@ -25,7 +25,11 @@ PODS:
   - AMapSearch (4.5.0):
     - AMapFoundation (~> 1.2)
   - FDFullscreenPopGesture (1.1)
+  - FMDB (2.6.2):
+    - FMDB/standard (= 2.6.2)
+  - FMDB/standard (2.6.2)
   - HappyDNS (0.3.10)
+  - JSONKit-NoWarning (1.2)
   - JSONModel (1.2.0)
   - MJRefresh (3.1.12)
   - Qiniu (7.0.20):
@@ -42,6 +46,8 @@ DEPENDENCIES:
   - AMapNavi
   - AMapSearch
   - FDFullscreenPopGesture
+  - FMDB
+  - JSONKit-NoWarning (~> 1.2)
   - JSONModel (~> 1.2.0)
   - MJRefresh (~> 3.1.0)
   - Qiniu (from `https://github.com/qiniu/objc-sdk.git`, branch `AFNetworking-3.x`)
@@ -67,7 +73,9 @@ SPEC CHECKSUMS:
   AMapNavi: 4f48c7b34275f80f3d14eff669ac739e0e190c1b
   AMapSearch: 7a6ebc20a42e34a021b042b047f198082fc2fc30
   FDFullscreenPopGesture: a8a620179e3d9c40e8e00256dcee1c1a27c6d0f0
+  FMDB: 854a0341b4726e53276f2a8996f06f1b80f9259a
   HappyDNS: 06a9fed2796663fd87626dbf02552933265bf059
+  JSONKit-NoWarning: 3d27e6f9e6846ecf741e8c64dcadd7d5aa7193cb
   JSONModel: 12523685c4b623553ccf844bbbf7007624317b2c
   MJRefresh: b96cdb21c4aa75a7b07654311ab2f315c497e806
   Qiniu: 4dbf1e6acb3236c4d7251046a17d08b16d21fcfe
@@ -75,6 +83,6 @@ SPEC CHECKSUMS:
   SDWebImage: c325cf02c30337336b95beff20a13df489ec0ec9
   SSKeychain: 55cc80f66f5c73da827e3077f02e43528897db41
 
-PODFILE CHECKSUM: f9807501d6693abecfc6284b70fa672e537bffdc
+PODFILE CHECKSUM: fd56634f22bdad4b64c1ccbad0cc7e64d014027e
 
 COCOAPODS: 1.0.0

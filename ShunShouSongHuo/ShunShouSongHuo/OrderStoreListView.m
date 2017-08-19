@@ -49,7 +49,7 @@
         self.callback = callBack;
         self.isMyStore = YES;
         [self initData];
-        [self initSearchView];
+//        [self initSearchView];
         [self initStoreList];
     }
     return self;
@@ -79,13 +79,14 @@
     _currentPage = 0;
     _selectedIndex = -1;
     [self requestDataFromSever];
+    [self.searchTextFiled resignFirstResponder];
 }
 
 - (void)tableRefesh{
-    if (!self.dataArray.count) {
+//    if (!self.dataArray.count) {
         _selectedIndex = -1;
         [self.tabView.mj_header beginRefreshing];
-    }
+//    }
 }
 
 - (NSMutableArray*)dataArray{
@@ -125,7 +126,7 @@
     if (self.isMyStore) {
         [parameters put:@"my_claim_list" key:@"list_type"];
     }else{
-        [parameters put:@"can_claim_pois" key:@"list_type"];
+        [parameters put:@"can_claim_list" key:@"list_type"];
     }
     [parameters put:accessToken() key:ACCESS_TOKEN];
     CCWeakSelf(self);
@@ -182,13 +183,15 @@
 
 
 - (void)initStoreList{
+    self.backgroundColor = UIColorFromRGB(0xf5f5f5);
     
-    self.tabView = [[UITableView alloc]initWithFrame:CGRectMake(0, 50, SYSTEM_WIDTH, self.bounds.size.height-50)];
+    self.tabView = [[UITableView alloc]initWithFrame:CGRectMake(0, 0, SYSTEM_WIDTH, self.bounds.size.height)];
     _tabView.dataSource = self;
     _tabView.delegate = self;
     _tabView.separatorStyle = UITableViewCellSeparatorStyleNone;
     _tabView.showsVerticalScrollIndicator = NO;
     [_tabView registerNib:[UINib nibWithNibName:@"OrderStoreCell" bundle:[NSBundle mainBundle]] forCellReuseIdentifier:@"OrderStoreCell"];
+
     _tabView.backgroundColor = UIColorFromRGB(0xf5f5f5);
     [self addSubview:_tabView];
     
@@ -246,57 +249,18 @@
     }
 }
 
-- (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath
-{
+- (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath{
     return NO;
 }
 
-- (UITableViewCellEditingStyle)tableView:(UITableView *)tableView editingStyleForRowAtIndexPath:(NSIndexPath *)indexPath
-{
-    return UITableViewCellEditingStyleDelete;
+- (CGFloat)tableView:(UITableView *)tableView heightForFooterInSection:(NSInteger)section{
+    return self.dataArray.count>0 ? 0.5 :0;
 }
 
--(NSString *)tableView:(UITableView *)tableView titleForDeleteConfirmationButtonForRowAtIndexPath:(NSIndexPath *)indexPath{
-    return NSLocalizedString(@"c__give_up__", nil);
-}
-
-- (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath{
-    if (editingStyle == UITableViewCellEditingStyleDelete){
-        /*此处处理自己的代码，如删除数据*/
-        OrderStoreModel *storeModel = [self.dataArray objectAtIndex:indexPath.row];
-        CCWeakSelf(self);
-        CustomIOSAlertView *alertView = [[CustomIOSAlertView alloc] init];
-        [alertView setContainerImage:@"alertnormol" message:NSLocalizedString(@"sl_user_give_up_store", nil) buttons:@[ NSLocalizedString(@"c_let_me_double_think", nil),NSLocalizedString(@"c_give_up", nil)]];
-        
-        [alertView setOnButtonTouchUpInside:^(CustomIOSAlertView *alertView, int buttonIndex) {
-            if (buttonIndex) {
-                [weakself.dataArray removeObjectAtIndex:indexPath.row];
-                /*删除tableView中的一行*/
-                [tableView deleteRowsAtIndexPaths:[NSMutableArray arrayWithObject:indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
-                if (weakself.dataArray.count==0) {
-                    [weakself.tabView addSubview:weakself.emptyListView];
-                }
-                [weakself giveUpStore:storeModel];
-            }
-            [alertView close];
-        }];
-        [alertView show];
-    }
-}
-
-- (void)giveUpStore:(OrderStoreModel*)storeModel{
-    CCWeakSelf(self);
-    NSMutableDictionary *parameters = [NSMutableDictionary dictionary];
-    [parameters put:accessToken() key:ACCESS_TOKEN];
-    [parameters put:storeModel._id key:@"private_poi_id"];
-    [[CCHTTPRequest requestManager] postWithRequestBodyString:@"" parameters:parameters resultBlock:^(NSDictionary *result, NSError *error) {
-        if (error) {
-            toast_showInfoMsg(NSLocalizedStringFromTable(error.domain, @"SeverError", nil), 200);
-            [weakself reloadData];
-        }else{
-            toast_showInfoMsg(NSLocalizedString(@"c_give_up_succeed", nil), 200);
-        }
-    }];
+- (UIView*)tableView:(UITableView *)tableView viewForFooterInSection:(NSInteger)section{
+    UIView *footerView = [[UIView alloc]initWithFrame:CGRectMake(0, 0, SYSTEM_WIDTH, 0.5)];
+    footerView.backgroundColor = [UIColor customGrayColor];
+    return footerView;
 }
 
 #pragma mark --------> 添加搜索框
@@ -357,10 +321,6 @@
 }
 
 - (BOOL)textFieldShouldReturn:(UITextView*)textField{
-    if ([textField.text isEmpty]) {
-        toast_showInfoMsg(NSLocalizedString(@"g_please_input_search_key", nil), 200);
-        return NO;
-    }
     self.searchKey = textField.text;
     [self reloadData];
     return YES;
@@ -375,6 +335,7 @@
     self.searchTextFiled.text = @"";
     self.searchKey = @"";
     [self reloadData];
+    [self.searchTextFiled resignFirstResponder];
 }
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event{
@@ -384,5 +345,52 @@
 - (void)dealloc{
     NSLog(@"storeList delloc");
 }
+//- (UITableViewCellEditingStyle)tableView:(UITableView *)tableView editingStyleForRowAtIndexPath:(NSIndexPath *)indexPath
+//{
+//    return UITableViewCellEditingStyleDelete;
+//}
+//
+//-(NSString *)tableView:(UITableView *)tableView titleForDeleteConfirmationButtonForRowAtIndexPath:(NSIndexPath *)indexPath{
+//    return NSLocalizedString(@"c__give_up__", nil);
+//}
+//
+//- (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath{
+//    if (editingStyle == UITableViewCellEditingStyleDelete){
+//        /*此处处理自己的代码，如删除数据*/
+//        OrderStoreModel *storeModel = [self.dataArray objectAtIndex:indexPath.row];
+//        CCWeakSelf(self);
+//        CustomIOSAlertView *alertView = [[CustomIOSAlertView alloc] init];
+//        [alertView setContainerImage:@"alertnormol" message:NSLocalizedString(@"sl_user_give_up_store", nil) buttons:@[ NSLocalizedString(@"c_let_me_double_think", nil),NSLocalizedString(@"c_give_up", nil)]];
+//
+//        [alertView setOnButtonTouchUpInside:^(CustomIOSAlertView *alertView, int buttonIndex) {
+//            if (buttonIndex) {
+//                [weakself.dataArray removeObjectAtIndex:indexPath.row];
+//                /*删除tableView中的一行*/
+//                [tableView deleteRowsAtIndexPaths:[NSMutableArray arrayWithObject:indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
+//                if (weakself.dataArray.count==0) {
+//                    [weakself.tabView addSubview:weakself.emptyListView];
+//                }
+//                [weakself giveUpStore:storeModel];
+//            }
+//            [alertView close];
+//        }];
+//        [alertView show];
+//    }
+//}
+//
+//- (void)giveUpStore:(OrderStoreModel*)storeModel{
+//    CCWeakSelf(self);
+//    NSMutableDictionary *parameters = [NSMutableDictionary dictionary];
+//    [parameters put:accessToken() key:ACCESS_TOKEN];
+//    [parameters put:storeModel._id key:@"private_poi_id"];
+//    [[CCHTTPRequest requestManager] postWithRequestBodyString:@"" parameters:parameters resultBlock:^(NSDictionary *result, NSError *error) {
+//        if (error) {
+//            toast_showInfoMsg(NSLocalizedStringFromTable(error.domain, @"SeverError", nil), 200);
+//            [weakself reloadData];
+//        }else{
+//            toast_showInfoMsg(NSLocalizedString(@"c_give_up_succeed", nil), 200);
+//        }
+//    }];
+//}
 
 @end

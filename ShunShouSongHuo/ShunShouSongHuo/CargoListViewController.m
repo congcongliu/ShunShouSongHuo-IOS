@@ -7,15 +7,56 @@
 //
 
 #import "CargoListViewController.h"
-#import <SDAutoLayout.h>
+#import "GoodModel.h"
+#import "NoDataView.h"
+#import "LinkFailed.h"
 #import "OrderGoodCell.h"
+#import "CCHTTPRequest.h"
+
 @interface CargoListViewController ()<UITableViewDelegate,UITableViewDataSource>
+@property (nonatomic, strong) NSArray        *storeIds;
+@property (nonatomic, assign) NSInteger      storeCount;
+@property (nonatomic, assign) BOOL           isSelectStoreMode;
+@property (nonatomic, copy  ) CargoListCallBack callback;
+
 //列表用
 @property (nonatomic, strong) NSMutableArray *goodsArray;
-@property (nonatomic, strong) UITableView *tableView;
+@property (nonatomic, strong) UITableView    *tableView;
+@property (nonatomic, strong) NoDataView     *emptyListView;
+@property (nonatomic, strong) LinkFailed     *defaultView;
 @end
 
 @implementation CargoListViewController
+
+- (instancetype)initWithSelectStoreCount:(NSInteger)storeCount
+{
+    self = [super init];
+    if (self) {
+        self.storeCount = storeCount;
+    }
+    return self;
+}
+
+- (instancetype)initWithSelectStoreIds:(NSArray *)storeIds andCallback:(CargoListCallBack)callback
+{
+    self = [super init];
+    if (self) {
+        self.storeIds = storeIds;
+        self.storeCount = storeIds.count;
+        self.callback = callback;
+        self.isSelectStoreMode = YES;
+    }
+    return self;
+}
+
+- (NoDataView *)emptyListView{
+    if (!_emptyListView) {
+        _emptyListView = [[NoDataView alloc]initWithFrame:self.tableView.bounds];
+        _emptyListView.backgroundColor = [UIColor whiteColor];
+        _emptyListView.messageLabel.text = @"没有货物";
+    }
+    return _emptyListView;
+}
 
 - (NSMutableArray *)goodsArray{
     if (!_goodsArray) {
@@ -26,11 +67,13 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.title = @"装货清单";
-    [self.goodsArray addObjectsFromArray:@[@"",@"",@"",@"",@""]];
+    self.title = [NSString stringWithFormat:@"装货清单（%ld家门店）",self.storeCount];
     [self addNaviView];
     [self addGoodList];
-    [self addBottomView];
+    [self getGoodList];
+    if (self.isSelectStoreMode) {
+        [self addBottomView];
+    }
 }
 
 #pragma mark -----------> 添加导航条
@@ -38,7 +81,7 @@
     
     CCNavigationBar *navi = [[CCNavigationBar alloc]initWithFrame:CGRectMake(0, 0, SYSTEM_WIDTH, SYSTEM_NAVI_HEIGHT) title:self.title];
     [self.view addSubview:navi];
-    UIButton *left = [CCControl buttonWithFrame:CGRectMake(0, 0, 80, 20) title:@"" backGroundImage:nil target:self action:@selector(dismissClick)];
+    UIButton *left = [CCControl buttonWithFrame:CGRectMake(0, 0, 80, 20) title:@"" backGroundImage:nil target:self action:@selector(naviBackClick)];
     [navi addLeftButton:left];
 }
 
@@ -56,8 +99,16 @@
     tableView.sd_layout
     .leftEqualToView(self.view)
     .rightEqualToView(self.view)
-    .bottomSpaceToView(self.view,60)
-    .topSpaceToView(self.view,SYSTEM_NAVI_HEIGHT);
+    .topSpaceToView(self.view,SYSTEM_NAVI_HEIGHT)
+    .bottomSpaceToView(self.view,self.isSelectStoreMode?60:0);
+    
+    //链接失败的图片
+    CCWeakSelf(self);
+    _defaultView = [[LinkFailed alloc]initWithFrame:self.view.bounds callBack:^{
+        [weakself getGoodList];
+    }];
+    [self.view addSubview:_defaultView];
+    _defaultView.hidden = YES;
 }
 
 
@@ -68,11 +119,19 @@
 }
 
 - (UITableViewCell*)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    GoodModel *goodModel = [self.goodsArray objectAtIndex:indexPath.row];
     OrderGoodCell *cell = [tableView dequeueReusableCellWithIdentifier:@"OrderGoodCell" forIndexPath:indexPath];
-    [cell showCellWithIndexPath:indexPath];
+    [cell showCellWithIndexPath:indexPath andGoodModel:goodModel];
     return cell;
 }
-
+- (CGFloat)tableView:(UITableView *)tableView heightForFooterInSection:(NSInteger)section{
+    return self.goodsArray.count>0 ? 0.5 :0;
+}
+- (UIView*)tableView:(UITableView *)tableView viewForFooterInSection:(NSInteger)section{
+    UIView *footerView = [[UIView alloc]initWithFrame:CGRectMake(0, 0, SYSTEM_WIDTH, 0.5)];
+    footerView.backgroundColor = [UIColor customGrayColor];
+    return footerView;
+}
 
 - (void)addBottomView{
     
@@ -80,19 +139,20 @@
     bottomView.backgroundColor = [UIColor whiteColor];
     [self.view addSubview:bottomView];
     UIView *lineView = [[UIView alloc]initWithFrame:CGRectMake(0, 0, SYSTEM_WIDTH, 0.5)];
-    lineView.backgroundColor = [UIColor customGrayColor];
+    lineView.backgroundColor = [UIColor grayTextColor];
     [bottomView addSubview:lineView];
     
-    UIButton * reselectButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    reselectButton.clipsToBounds = YES;
-    reselectButton.layer.cornerRadius = 20;
-    reselectButton.layer.borderColor = [UIColor blackColor].CGColor;
-    reselectButton.layer.borderWidth = 2;
-    reselectButton.titleLabel.font = [UIFont boldSystemFontOfSize:15];
-    [reselectButton setTitle:@"重新选店" forState:UIControlStateNormal];
-    [reselectButton setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
-    [reselectButton setBackgroundImage:[UIImage imageNamed:@"F5F5F5"] forState:UIControlStateHighlighted];
-    [bottomView addSubview:reselectButton];
+    UIButton * cancelButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    cancelButton.clipsToBounds = YES;
+    cancelButton.layer.cornerRadius = 20;
+    cancelButton.layer.borderColor = [UIColor blackColor].CGColor;
+    cancelButton.layer.borderWidth = 2;
+    cancelButton.titleLabel.font = [UIFont boldSystemFontOfSize:15];
+    [cancelButton setTitle:@"返回" forState:UIControlStateNormal];
+    [cancelButton setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+    [cancelButton setBackgroundImage:[UIImage imageNamed:@"F5F5F5"] forState:UIControlStateHighlighted];
+    [cancelButton addTarget:self action:@selector(cancelSelectStore) forControlEvents:UIControlEventTouchUpInside];
+    [bottomView addSubview:cancelButton];
     
     UIButton * confirmButton = [UIButton buttonWithType:UIButtonTypeCustom];
     confirmButton.clipsToBounds = YES;
@@ -101,8 +161,9 @@
     [confirmButton setTitle:@"确认" forState:UIControlStateNormal];
     confirmButton.backgroundColor = UIColorFromRGB(0xFF3B30);
     [confirmButton setBackgroundImage:[UIImage imageNamed:@"cc2f27"] forState:UIControlStateHighlighted];
+    [confirmButton addTarget:self action:@selector(confirmSelectStore) forControlEvents:UIControlEventTouchUpInside];
     [bottomView addSubview:confirmButton];
-    reselectButton.sd_layout
+    cancelButton.sd_layout
     .heightIs(40)
     .centerYEqualToView(bottomView)
     .leftSpaceToView(bottomView,15)
@@ -111,12 +172,81 @@
     confirmButton.sd_layout
     .heightIs(40)
     .centerYEqualToView(bottomView)
-    .leftSpaceToView(reselectButton,10)
+    .leftSpaceToView(cancelButton,10)
     .rightSpaceToView(bottomView,15);
 }
 
-- (void)dismissClick{
-    [self dismissViewControllerAnimated:YES completion:nil];
+- (void)getGoodList{
+    show_progress();
+    CCWeakSelf(self);
+    NSMutableDictionary *parameters = [[NSMutableDictionary alloc]init];
+    [parameters put:accessToken() key:ACCESS_TOKEN];
+    if (self.isSelectStoreMode) {
+        [parameters put:self.storeIds key:@"private_poi_ids"];
+    }
+    
+    [[CCHTTPRequest requestManager] getWithRequestBodyString:USER_GET_GOODS_LIST parameters:parameters resultBlock:^(NSDictionary *result, NSError *error) {
+        dismiss_progress();
+        if (error) {
+            CCLog(@"%@",error.domain);
+            toast_showInfoMsg(NSLocalizedStringFromTable(error.domain, @"SeverError", nil), 200);
+        }else{
+            //            CCLog(@"门店详情%@",result);
+            NSArray *goods = [result objectForKey:@"goods"];
+            [weakself.goodsArray removeAllObjects];
+            for (NSDictionary *goodDict in goods) {
+                GoodModel *goodModel = [[GoodModel alloc] initWithDictionary:goodDict error:nil];
+                [weakself.goodsArray addObject:goodModel];
+            }
+        }
+        if (error.code == -404) {
+            _defaultView.hidden = NO;
+        }
+        else{
+            _defaultView.hidden = YES;
+        }
+        if (weakself.goodsArray.count==0) {
+            [weakself.tableView addSubview:weakself.emptyListView];
+        }else{
+            [weakself.emptyListView removeFromSuperview];
+        }
+        [weakself.tableView reloadData];
+    }];
+
+}
+
+- (void)confirmSelectStore{
+    show_progress();
+    NSMutableDictionary *parameters = [[NSMutableDictionary alloc]init];
+    [parameters put:accessToken() key:ACCESS_TOKEN];
+    [parameters put:self.storeIds key:@"private_poi_ids"];
+    
+    CCWeakSelf(self);
+    [[CCHTTPRequest requestManager] postWithRequestBodyString:USER_CLAIM_ORDER_STORE parameters:parameters resultBlock:^(NSDictionary *result, NSError *error) {
+        dismiss_progress();
+        if (error) {
+            CCLog(@"%@",error.domain);
+            toast_showInfoMsg(NSLocalizedStringFromTable(error.domain, @"SeverError", nil), 200);
+        }else{
+            if (weakself.callback) {
+                weakself.callback(YES);
+            }
+            toast_showInfoMsg(@"选店成功", 200);
+            [weakself naviBackClick];
+        }
+    }];
+}
+
+- (void)cancelSelectStore{
+    [self naviBackClick];
+}
+
+
+
+
+- (void)naviBackClick{
+//    [self dismissViewControllerAnimated:YES completion:nil];
+    [self.navigationController popViewControllerAnimated:YES];
 }
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];

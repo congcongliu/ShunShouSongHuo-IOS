@@ -7,7 +7,7 @@
 //
 
 #import <UIKit/UIKit.h>
-
+#import "GoodModel.h"
 @interface OrderGoodCell : UITableViewCell
-- (void)showCellWithIndexPath:(NSIndexPath*)indexPath;
+- (void)showCellWithIndexPath:(NSIndexPath*)indexPath andGoodModel:(GoodModel*)goodModel;
 @end

@@ -79,8 +79,9 @@
                 NSString *errType = [errDict stringForKey:@"type"];
                 error = [[NSError alloc]initWithDomain:errType code:-200 userInfo:errDict];
                 
-                if ([error.domain isEqualToString:@"invalid_access_token"]||[error.domain isEqualToString:@"undefined_access_token"]) {
+                if ([error.domain isEqualToString:@"invalid_access_token"]||[error.domain isEqualToString:@"undefined_access_token"]||[error.domain isEqualToString:@"user_not_deliveryman"]) {
                     save_AccessToken(@"");
+                    [[NSNotificationCenter defaultCenter] postNotificationName:ACCESS_TOKEN_INVAILD_NOTI object:nil];
                 }
                 
             }
@@ -137,8 +138,9 @@
                 NSString *errType = [errDict stringForKey:@"type"];
                 
                 error = [[NSError alloc]initWithDomain:errType code:-200 userInfo:errDict];
-                if ([error.domain isEqualToString:@"invalid_access_token"]||[error.domain isEqualToString:@"undefined_access_token"]) {
+                if ([error.domain isEqualToString:@"invalid_access_token"]||[error.domain isEqualToString:@"undefined_access_token"]||[error.domain isEqualToString:@"user_not_deliveryman"]) {
                     save_AccessToken(@"");
+                    [[NSNotificationCenter defaultCenter] postNotificationName:ACCESS_TOKEN_INVAILD_NOTI object:nil];
                 }
             }
             resultBlock(result,error);
@@ -193,9 +195,21 @@
     }];
 }
 
+#if DEBUG
+- (NSString *)requestUrl:(NSString *)bodyString
+{
+    NSString * serverAddress = user_diyUrl();
+    if (!serverAddress || [serverAddress isEmpty]) {
+        serverAddress = BASE_URL;
+        save_userDiyUrl(serverAddress);
+    }
+    return [NSString stringWithFormat:@"%@%@",serverAddress,bodyString];
+}
+#else
 - (NSString *)requestUrl:(NSString *)bodyString
 {
     return [NSString stringWithFormat:@"%@%@",BASE_URL,bodyString];
 }
+#endif
 
 @end

@@ -7,6 +7,10 @@
 //
 
 #import <JSONModel/JSONModel.h>
+
+@protocol OrderStoreModel <NSObject>
+@end
+
 @interface OrderStoreModel : JSONModel
 @property (nonatomic, copy  ) NSString<Optional> * _id;
 @property (nonatomic, copy  ) NSString<Optional> * name;

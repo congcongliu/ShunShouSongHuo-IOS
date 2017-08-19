@@ -31,7 +31,7 @@
     
     if (self.anntationVisible && [self.naviAnnotations count] > 0)
     {
-        [mapView addAnnotations:self.naviAnnotations];
+//        [mapView addAnnotations:self.naviAnnotations];
     }
 }
 

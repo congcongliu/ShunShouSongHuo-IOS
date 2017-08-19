@@ -15,6 +15,7 @@
 #import "UserLocation.h"
 #import "CCHTTPRequest.h"
 #import "NSString+Tool.h"
+#import "CCESignatureView.h"
 #import <MAMapKit/MAMapKit.h>
 #import "NSDictionary+Tool.h"
 #import "CustomIOSAlertView.h"
@@ -30,6 +31,8 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
 @interface OrderStoreMapView ()<AMapLocationManagerDelegate,MAMapViewDelegate,AMapSearchDelegate>{
     CGFloat _screenDiagonal;
     id <MAAnnotation> _selectedAnnotation;;
+    UIButton *_drawLineButton;
+    CCESignatureView *_drawLineView;
 }
 @property (nonatomic, strong) UIButton               *myLocationButton;//回到我的位置按钮
 @property (nonatomic, strong) UIImageView            *locationImage;//定位按钮图片
@@ -45,15 +48,16 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
 @property (nonatomic, strong) MAAnnotationView       *userLocationAnnotationView;
 
 //路线规划
-@property (nonatomic, assign) BOOL                   isRoute;//是否加载中
+@property (nonatomic, strong) NSMutableArray         *myRouteStores; //我门店
 @property (nonatomic, strong) AMapSearchAPI          *search;
 @property (nonatomic, strong) NSMutableArray         *routes;
 @property (nonatomic, strong) NSMutableArray         *naviRoutes;
 @property (nonatomic, strong) NSMutableArray         *naviRouteLines;
-
 //选择门店
 @property (nonatomic, assign) BOOL                   isSelectStoreMode;//是选择门店
-@property (nonatomic, strong) NSMutableArray         *selectedStores;
+
+//仓库
+@property (nonatomic, strong) MAPointAnnotation      *storageAnnotation;
 @end
 
 @implementation OrderStoreMapView
@@ -65,7 +69,9 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
         [self initLocation];
         [self initSearch];
         [self initMapView];
+        [self addDrawLineButton];
         [self initMyLocationButton];
+        [self addStorageAnnotationView];
     }
     return self;
 }
@@ -101,11 +107,18 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
     return _naviRouteLines;
 }
 
-- (NSMutableArray *)seletedStores{
+- (NSMutableArray *)selectedStores{
     if (!_selectedStores) {
         _selectedStores = [NSMutableArray array];
     }
     return _selectedStores;
+}
+
+- (NSMutableArray *)myRouteStores{
+    if (!_myRouteStores) {
+        _myRouteStores = [NSMutableArray array];
+    }
+    return _myRouteStores;
 }
 
 #pragma mark  ---------> 无网络
@@ -128,8 +141,82 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
     _mapView.rotateCameraEnabled = NO;
     _mapView.backgroundColor = [UIColor whiteColor];
     [_mapView setUserTrackingMode:MAUserTrackingModeFollow animated:YES];
+    [_mapView setZoomLevel:11 animated:YES];
     [self addSubview:_mapView];
     _screenDiagonal = sqrt(pow(SYSTEM_WIDTH,2)+pow(SYSTEM_HEIGHT, 2))/2.00;
+}
+
+#pragma mark ------------> 画图
+- (void)addDrawLineButton{
+    _drawLineButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    _drawLineButton.frame = CGRectMake(20, self.mapView.frame.size.height-65, 45, 45);
+    [_drawLineButton setImage:[UIImage imageNamed:@"cirle_unstart"] forState:UIControlStateNormal];
+    [_drawLineButton setImage:[UIImage imageNamed:@"cirle_selected"] forState:UIControlStateSelected];
+    _drawLineButton.backgroundColor = [UIColor whiteColor];
+    [_drawLineButton setBackgroundImage:[UIImage imageNamed:@"custom_red"] forState:UIControlStateSelected];
+    _drawLineButton.clipsToBounds = YES;
+    _drawLineButton.layer.cornerRadius = 22.5;
+    _drawLineButton.layer.borderColor = [UIColor blackColor].CGColor;
+    _drawLineButton.layer.borderWidth = 2;
+    [_drawLineButton setBackgroundImage:[UIImage imageNamed:@""] forState:UIControlStateNormal];
+    [_drawLineButton addTarget:self action:@selector(startDrawLine) forControlEvents:UIControlEventTouchUpInside];
+    [_mapView addSubview:_drawLineButton];
+    
+    _drawLineButton.hidden = YES;
+}
+
+- (void)startDrawLine{
+    _drawLineButton.selected = !_drawLineButton.selected;
+    [_drawLineView removeFromSuperview];
+    if (_drawLineButton.selected) {
+        CCWeakSelf(self);
+        _drawLineView = [[CCESignatureView alloc]initWithFrame:self.mapView.bounds andMapView:self.mapView andDrawLineCallBack:^(NSArray *locations) {
+            [weakself seleteStoresByLineLocations:locations];
+        }];
+        [self.mapView addSubview:_drawLineView];
+    }
+}
+
+- (void)seleteStoresByLineLocations:(NSArray *)locations{
+    
+    _drawLineButton.selected = NO;
+    
+    if (locations.count<1) {
+        return;
+    }
+    
+    CLLocationCoordinate2D coordinates[locations.count];
+    for (int i=0; i<locations.count; i++) {
+        NSValue *value = locations[i];
+        CLLocationCoordinate2D coordinate = value.MACoordinateValue;
+        coordinates[i] = coordinate;
+    }
+    MAPolygon *polygon = [MAPolygon polygonWithCoordinates:coordinates count:locations.count];
+    
+    for (StorePointAnnotation *annotation in self.annotations) {
+        MAMapPoint point = MAMapPointForCoordinate(annotation.coordinate);
+        if (MAPolygonContainsPoint(point, polygon.points, locations.count) && ![self.selectedStores containsObject:annotation.subtitle]) {
+            [self.selectedStores addObject:annotation.subtitle];
+        }
+    }
+    [self.mapView removeAnnotations:self.annotations];
+    [self.mapView addAnnotations:self.annotations];
+}
+
+
+- (void)addStorageAnnotationView{
+    [self.mapView removeAnnotation:self.storageAnnotation];
+    if (!storageAddress()||[storageAddress() isEmpty]||!storageLocation()||storageLocation().count<1) {
+        return;
+    }
+    MAPointAnnotation *poi = [[MAPointAnnotation alloc] init];
+    poi.title = @"仓库";
+    poi.subtitle = storageAddress();
+    NSNumber *lat = storageLocation()[1];
+    NSNumber *lon = storageLocation()[0];
+    poi.coordinate = CLLocationCoordinate2DMake(lat.floatValue, lon.floatValue);
+    [self.mapView addAnnotation:poi];
+    self.storageAnnotation = poi;
 }
 
 #pragma mark  --------->  获取当前地理位置
@@ -154,8 +241,8 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
     [_locationManager stopUpdatingLocation];
     _userLocation = location.coordinate;
     //调整地图缩放范围
-    if (_mapView.zoomLevel<16.5) {
-        [_mapView setZoomLevel:16.5 animated:YES];
+    if (_mapView.zoomLevel>15||_mapView.zoomLevel<9) {
+        [_mapView setZoomLevel:11 animated:YES];
     }
     [_mapView setCenterCoordinate:location.coordinate animated:YES];
     [self showMyLocationWhenAtCenter:YES];
@@ -166,7 +253,7 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
 #pragma mark  ---------> 获取门店
 - (void)getStoreListWithLocation:(CLLocationCoordinate2D)location{
     
-    if (self.isLoading||location.latitude==0||location.longitude==0) {
+    if (self.isLoading||location.latitude==0||location.longitude==0||self.isSelectStoreMode) {
         return;
     }
     self.isLoading = YES;
@@ -176,11 +263,10 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
     double lat = location.latitude;
     double lon = location.longitude;
     [parameters put:@[[NSNumber numberWithDouble:lon],[NSNumber numberWithDouble:lat]] key:@"center_location"];
-//    [parameters put:@"distance" key:@"sort_key"];
-//    [parameters put:@"map" key:@"request_type"];
-//        CGFloat screenDistance = _screenDiagonal*self.mapView.metersPerPointForCurrentZoom/1000.00;
-//    [parameters put:[NSNumber numberWithFloat:screenDistance] key:@"radius"];
-//    [parameters put:@"59816c3e5ae3e1643f676f1e" key:@"order_task_id"];
+    
+    [parameters put:@"distance" key:@"sort_key"];
+    CGFloat screenDistance = _screenDiagonal*[self.mapView metersPerPointForZoomLevel:self.mapView.zoomLevel]/1000.00;
+    [parameters put:[NSNumber numberWithFloat:screenDistance] key:@"radius"];
     
     CCWeakSelf(self);
     [[CCHTTPRequest requestManager] getWithRequestBodyString:USER_GET_STORE_MAP parameters:parameters resultBlock:^(NSDictionary *result, NSError *error) {
@@ -191,13 +277,20 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
         }else{
             weakself.defaultView.hidden = YES;
             [weakself.storePoints removeAllObjects];
+            [weakself.myRouteStores removeAllObjects];
             NSArray *pois = [result objectForKey:@"pois"];
             NSLog(@"门店个数 --------->  %ld",pois.count);
             for (NSDictionary *poiDict in pois) {
                 OrderStoreModel *model = [[OrderStoreModel alloc]initWithDictionary:poiDict error:nil];
                 [weakself.storePoints addObject:model];
+                if (model.self_order_count.integerValue>0) {
+                    [weakself.myRouteStores addObject:model];
+                }
             }
             [weakself showAnnmontions];
+//            if (!weakself.isSelectStoreMode&&!weakself.isRouted) {
+//                [weakself showDriveRoute];
+//            }
         }
         weakself.isLoading = NO;
     }];
@@ -216,6 +309,9 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
         [self.annotations addObject:annotation];
     }
     [_mapView addAnnotations:self.annotations];
+    
+    
+    
 }
 
 #pragma mark  ---------> 回到我的位置
@@ -268,19 +364,31 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
             }
             StorePointAnnotation *storeAnnotation = (StorePointAnnotation *)annotation;
             if (storeAnnotation.storeModel.self_order_count.integerValue>0) {
-                annotationView.portrait = [UIImage imageNamed:@"my_store"];
+                annotationView.portrait = [UIImage imageNamed:@"select_store"];
             }else if (storeAnnotation.storeModel.urgent_order_count.integerValue>0){
-                annotationView.portrait = [UIImage imageNamed:@"vaild_store"];
+                annotationView.portrait = [UIImage imageNamed:@"urgent_store"];
             }else if (storeAnnotation.storeModel.order_count.integerValue>0){
-                annotationView.portrait = [UIImage imageNamed:@"vaild_store"];
+                annotationView.portrait = [UIImage imageNamed:@"valid_store"];
             }
             annotationView._id = annotation.subtitle;
+            
+            if (self.isSelectStoreMode&&[self.selectedStores containsObject:annotationView._id]) {
+                annotationView.portrait = [UIImage imageNamed:@"select_store"];
+            }
+            annotationView.centerOffset = CGPointMake(0, 0);
             return annotationView;
         }else{
-            static NSString *storageReuseIndetifier = @"storageReuseIndetifier";
-            MAAnnotationView *storeView = [mapView dequeueReusableAnnotationViewWithIdentifier:storageReuseIndetifier];
-            storeView.image = [UIImage imageNamed:@"my_store"];
-            return storeView;
+            static NSString *reuseIndetifier = @"annotationReuseIndetifier";
+            MAAnnotationView *annotationView = (MAAnnotationView *)[mapView dequeueReusableAnnotationViewWithIdentifier:reuseIndetifier];
+            if (annotationView == nil)
+            {
+                annotationView = [[MAAnnotationView alloc] initWithAnnotation:annotation
+                                                              reuseIdentifier:reuseIndetifier];
+            }
+            annotationView.canShowCallout = YES;
+            annotationView.image = [UIImage imageNamed:@"storage"];
+            annotationView.centerOffset = CGPointMake(0, -5);
+            return annotationView;
         }
     }
     return nil;
@@ -294,16 +402,32 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
     }
     StorePointAnnotationView *customView = (StorePointAnnotationView*)view;
     NSLog(@"customViewID:%@",customView._id);
-    StorePointAnnotation *storeAnnotation = (StorePointAnnotation *)view.annotation;
-    OrderStoreModel *model = storeAnnotation.storeModel;
-    if (model) {
-        [self showPopViewWithModel:model];
+    
+    if (self.isSelectStoreMode) {
+        if ([self.selectedStores containsObject:customView._id]) {
+            customView.portrait = [UIImage imageNamed:@"valid_store"];
+            [self.selectedStores removeObject:customView._id];
+        }else{
+            customView.portrait = [UIImage imageNamed:@"select_store"];
+            [self.selectedStores addObject:customView._id];
+        }
+        [self performSelector:@selector(deseletedStore:) withObject:customView.annotation afterDelay:0.1];
+    }else{
+        StorePointAnnotation *storeAnnotation = (StorePointAnnotation *)view.annotation;
+        OrderStoreModel *model = storeAnnotation.storeModel;
+        if (model) {
+            [self showPopViewWithModel:model];
+        }
+        NSNumber *latitude = model.location.lastObject;
+        NSNumber *longitude = model.location.firstObject;
+        [mapView setCenterCoordinate:CLLocationCoordinate2DMake(latitude.doubleValue, longitude.doubleValue) animated:YES];
+        [self showMyLocationWhenAtCenter:NO];
+        _selectedAnnotation = customView.annotation;
     }
-    NSNumber *latitude = model.location.lastObject;
-    NSNumber *longitude = model.location.firstObject;
-    [mapView setCenterCoordinate:CLLocationCoordinate2DMake(latitude.doubleValue, longitude.doubleValue) animated:YES];
-    [self showMyLocationWhenAtCenter:NO];
-    _selectedAnnotation = customView.annotation;
+}
+
+- (void)deseletedStore:(id <MAAnnotation>)annmation{
+    [_mapView deselectAnnotation:annmation animated:NO];
 }
 
 - (OrderStoreModel *)getModelByID:(NSString *)_id{
@@ -321,7 +445,7 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
     if ([overlay isKindOfClass:[LineDashPolyline class]])
     {
         MAPolylineRenderer *polylineRenderer = [[MAPolylineRenderer alloc] initWithPolyline:((LineDashPolyline *)overlay).polyline];
-        polylineRenderer.lineWidth   = 8;
+        polylineRenderer.lineWidth   = 4;
         polylineRenderer.strokeColor = [UIColor customRedColor];
         return polylineRenderer;
     }
@@ -330,7 +454,7 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
     {
         MANaviPolyline *naviPolyline = (MANaviPolyline *)overlay;
         MAPolylineRenderer *polylineRenderer = [[MAPolylineRenderer alloc] initWithPolyline:naviPolyline.polyline];
-        polylineRenderer.lineWidth = 8;
+        polylineRenderer.lineWidth = 4;
         polylineRenderer.strokeColor = [UIColor customBlueColor];
         return polylineRenderer;
     }
@@ -338,7 +462,7 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
     if ([overlay isKindOfClass:[MAMultiPolyline class]])
     {
         MAMultiColoredPolylineRenderer * polylineRenderer = [[MAMultiColoredPolylineRenderer alloc] initWithMultiPolyline:(MAMultiPolyline*)overlay];
-        polylineRenderer.lineWidth = 8;
+        polylineRenderer.lineWidth = 4;
         polylineRenderer.strokeColors = @[[UIColor customBlueColor]];
         polylineRenderer.gradient = YES;
         return polylineRenderer;
@@ -418,20 +542,32 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
 
 
 - (void)showDriveRoute{
-    self.isRoute = YES;
     [self clear];
     [self addDriveRouteLine];
 }
 
 - (void)addDriveRouteLine{
+    
     CLLocationCoordinate2D startLoaction = [[UserLocation defaultUserLoaction] userLoaction];
     MAMapPoint userPoint = MAMapPointForCoordinate(startLoaction);
+    
+    NSArray *newStorePoints = [self.myRouteStores sortedArrayUsingComparator:^NSComparisonResult(OrderStoreModel *firstModel, OrderStoreModel *secondModel) {
+        NSNumber *firstLat = firstModel.location[1];
+        NSNumber *firstLon = firstModel.location[0];
+        MAMapPoint firstPoi = MAMapPointForCoordinate(CLLocationCoordinate2DMake(firstLat.floatValue,firstLon.floatValue));
+        NSNumber *secondLat = secondModel.location[1];
+        NSNumber *secondLon = secondModel.location[0];
+        MAMapPoint secondPoi = MAMapPointForCoordinate(CLLocationCoordinate2DMake(secondLat.floatValue,secondLon.floatValue));
+        return MAMetersBetweenMapPoints(userPoint,firstPoi) > MAMetersBetweenMapPoints(userPoint,secondPoi);
+    }];
+    
     NSMutableArray *wayPassLocations = [NSMutableArray array];
-    for (int i=0; i<self.storePoints.count; i++) {
-        OrderStoreModel *model = [self.storePoints objectAtIndex:i];
+    for (int i=0; i<newStorePoints.count; i++) {
+        OrderStoreModel *model = [newStorePoints objectAtIndex:i];
         NSNumber *Lat = model.location[1];
         NSNumber *Lon = model.location[0];
         CLLocationCoordinate2D destLocation = CLLocationCoordinate2DMake(Lat.floatValue,Lon.floatValue);
+//        [wayPassLocations addObject:[AMapGeoPoint locationWithLatitude:destLocation.latitude longitude:destLocation.longitude]];
         //小于500 不导航
         if (MAMetersBetweenMapPoints(userPoint,MAMapPointForCoordinate(destLocation))>500) {
             [wayPassLocations addObject:[AMapGeoPoint locationWithLatitude:destLocation.latitude longitude:destLocation.longitude]];
@@ -464,6 +600,10 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
     if (response.route == nil){
         return;
     }
+    self.isRouted = YES;
+    [self.naviRoutes removeAllObjects];
+    [self.naviRouteLines removeAllObjects];
+    
     [self.routes addObject:response.route];
     if (response.count > 0){
         [self presentDriveLineWithRoute:response.route];
@@ -497,19 +637,46 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
     for (MANaviRoute *route in self.naviRoutes) {
         [route removeFromMapView];
     }
-    [self.naviRoutes removeAllObjects];
-    [self.naviRouteLines removeAllObjects];
+//    [self.naviRoutes removeAllObjects];
+//    [self.naviRouteLines removeAllObjects];
 }
 
 #pragma mark ------------> 门店选择模块
 
 - (void)startSelectStore{
+    
+//    [self clear];
+    [self.selectedStores removeAllObjects];
+    for (OrderStoreModel *model in self.myRouteStores) {
+        [self.selectedStores addObject:model._id];
+    }
     self.isSelectStoreMode = YES;
-}
-- (void)stopSelectStore{
-    self.isSelectStoreMode = NO;
+    [self.mapView removeAnnotations:self.annotations];
+    [self.mapView addAnnotations:self.annotations];
+    _drawLineButton.hidden = NO;
 }
 
+- (NSInteger)getSeletedCount{
+    return self.myRouteStores.count;
+}
+
+- (void)stopSelectStore{
+    self.isSelectStoreMode = NO;
+    [self.selectedStores removeAllObjects];
+    
+//    for (MANaviRoute *naviRoute in self.naviRoutes) {
+//        [naviRoute addToMapView:self.mapView];
+//    }
+    
+    [self.mapView removeAnnotations:self.annotations];
+    [self.mapView addAnnotations:self.annotations];
+    
+    
+    _drawLineButton.hidden = YES;
+    _drawLineButton.selected = NO;
+    [_drawLineView removeFromSuperview];
+    _drawLineView = nil;
+}
 
 - (void)dealloc{
     NSLog(@"storeMap delloc");

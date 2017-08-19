@@ -46,7 +46,7 @@
         [self addSubview:_label];
         
         self.bottomView = [[UIView alloc]initWithFrame:CGRectMake(0, 63.5, SYSTEM_WIDTH, 0.5)];
-        _bottomView.backgroundColor = [UIColor customGrayColor];
+        _bottomView.backgroundColor = [UIColor grayTextColor];
         [self addSubview:_bottomView];
         
     }
@@ -80,8 +80,8 @@
 {
     self.leftButton = leftButton;
     leftButton.frame = CGRectMake(0, 20, 44, 44);
-    [leftButton setBackgroundImage:[UIImage imageNamed:@"arrowleft-n"] forState:UIControlStateNormal];
-    [leftButton setBackgroundImage:[UIImage imageNamed:@"arrowleft-h"] forState:UIControlStateHighlighted];
+    [leftButton setBackgroundImage:[UIImage imageNamed:@"arrowleft-h"] forState:UIControlStateNormal];
+    [leftButton setBackgroundImage:[UIImage imageNamed:@"arrowleft-n"] forState:UIControlStateHighlighted];
     [self addSubview:leftButton];
 }
 

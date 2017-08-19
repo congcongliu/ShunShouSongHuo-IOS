@@ -101,5 +101,7 @@
 "task_poi_claimed"                  = "该任务门店已经被其他业务员认领";
 "not_support_to_create_order"       = "该门店不允许你下单";
 "deliveryman_not_exist"             = "配送员不存在";
+"user_not_deliveryman"              = "该账户不是配送员";
+
 //NSLocalizedStringFromTable(@"invalid_phone", @"SeverError", nil)
 //"" = "";

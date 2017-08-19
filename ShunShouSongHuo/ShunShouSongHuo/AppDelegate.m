@@ -7,7 +7,10 @@
 //
 
 #import "AppDelegate.h"
+#import "CCTimerServer.h"
 #import "LoginViewController.h"
+#import "CCPhotoUploadManager.h"
+#import "CCVoiceUploadManager.h"
 #import <AMapFoundationKit/AMapFoundationKit.h>
 @interface AppDelegate ()
 
@@ -15,6 +18,9 @@
 
 @implementation AppDelegate
 
++ (AppDelegate *)shareAppDelegate{
+    return (AppDelegate *)[[UIApplication sharedApplication] delegate];
+}
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
@@ -47,6 +53,9 @@
 
 - (void)applicationDidBecomeActive:(UIApplication *)application {
     // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+    [[CCPhotoUploadManager sharedManager] startUploadPhoto];
+    [[CCVoiceUploadManager sharedManager] startUploadVoice];
+    [[CCTimerServer defaultServer] getServerTime];
 }
 
 

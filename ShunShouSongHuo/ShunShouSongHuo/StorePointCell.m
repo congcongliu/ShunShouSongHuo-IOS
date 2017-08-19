@@ -7,6 +7,7 @@
 //
 
 #import "StorePointCell.h"
+#import "CCTool.h"
 #import "Constant.h"
 #import "NSString+Tool.h"
 #import "SJAvatarBrowser.h"
@@ -22,31 +23,26 @@
     [self.storePicture addGestureRecognizer:tap];
     [self.storePicture setContentMode:UIViewContentModeScaleAspectFill];
     self.selectionStyle = UITableViewCellSelectionStyleNone;
-    self.phoneButton.layer.borderColor = [UIColor blackColor].CGColor;
-    self.phoneButton.layer.borderWidth = 2;
 }
 
-- (void)showOrderCellWithStore:(OrderStoreModel*)model andStoreNaviCallBack:(StoreNaviCallBack)callBack{
-    self.callBack = callBack;
-    self.nameLabel.text= model.name;
-    self.addressLabel.text = model.address;
-    NSString *photoUrl = [model.header_photos firstObject];
+- (void)showOrderCellWithStore:(OrderStoreModel*)storeModel{
+    self.storeModel = storeModel;
+    self.nameLabel.text= storeModel.name;
+    self.addressLabel.text = storeModel.address;
+    NSString *photoUrl = [storeModel.header_photos firstObject];
     [self.storePicture sd_setImageWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@%@",QN_HEARDER_URL,photoUrl]] placeholderImage:[UIImage imageNamed:@"defaultimage"] options:SDWebImageLowPriority];
-    self.phoneButton.frame = CGRectMake(15, 72, SYSTEM_WIDTH/3, 40);
-    self.naviButton.frame = CGRectMake(SYSTEM_WIDTH/3+30, 72, SYSTEM_WIDTH/3*2-45, 40);
+    if (!storeModel.contact_phone||[storeModel.contact_phone isEmpty]) {
+        self.phoneButton.hidden = YES;
+    }else{
+        self.phoneButton.hidden = NO;
+    }
 }
 
 - (void)imageViewTap:(UIGestureRecognizer*)sender{
     [SJAvatarBrowser showImage:(UIImageView*)sender.view];
 }
-
-- (IBAction)naviButtonClick:(id)sender {
-    if (self.callBack) {
-        self.callBack();
-    }
-}
-
-- (IBAction)phoneButtonClick:(id)sender {
+- (IBAction)phoneClick:(id)sender {
+    callNumber(self.storeModel.contact_phone, self);
 }
 
 - (void)setSelected:(BOOL)selected animated:(BOOL)animated {

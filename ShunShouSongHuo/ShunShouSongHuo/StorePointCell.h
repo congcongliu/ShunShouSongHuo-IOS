@@ -8,16 +8,16 @@
 
 #import <UIKit/UIKit.h>
 
-typedef void(^StoreNaviCallBack)();
+//typedef void(^StoreNaviCallBack)();
 
 #import "OrderStoreModel.h"
 @interface StorePointCell : UITableViewCell
 @property (weak, nonatomic) IBOutlet UIImageView *storePicture;
 @property (weak, nonatomic) IBOutlet UILabel *nameLabel;
 @property (weak, nonatomic) IBOutlet UILabel *addressLabel;
-@property (weak, nonatomic) IBOutlet UIButton *naviButton;
 @property (weak, nonatomic) IBOutlet UIButton *phoneButton;
 
-@property (nonatomic, copy) StoreNaviCallBack callBack;
-- (void)showOrderCellWithStore:(OrderStoreModel*)model andStoreNaviCallBack:(StoreNaviCallBack)callBack;
+//@property (nonatomic, copy) StoreNaviCallBack callBack;
+@property (nonatomic, strong) OrderStoreModel *storeModel;
+- (void)showOrderCellWithStore:(OrderStoreModel*)storeModel;
 @end

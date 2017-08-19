@@ -793,23 +793,6 @@ BOOL isOrangePhoto()
 }
 
 /**
- Description:保存新手视频
- @param url userName description
- */
-void save_freshVedioUrl(NSString* url)
-{
-    saveString(FRESH_VEDIO_URL,url);
-}
-
-/**
- <#Description#> 获取新手视频
- @returns <#return value description#>
- */
-NSString* fresh_VedioUrl()
-{
-    return getString(FRESH_VEDIO_URL);
-}
-/**
  Description:保存仓库地址
  @param storageAddress userName description
  */
@@ -843,4 +826,21 @@ NSArray * storageLocation()
     return getArray(USER_STORAGE_LOCATION);
 }
 
+/**
+ Description:保存服务器地址
+ @param url userName description
+ */
+void save_userDiyUrl(NSString* url)
+{
+    saveString(USER_DIY_URL,url);
+}
 
+
+/**
+ <#Description#> 获取服务器地址
+ @returns <#return value description#>
+ */
+NSString* user_diyUrl()
+{
+    return getString(USER_DIY_URL);
+}

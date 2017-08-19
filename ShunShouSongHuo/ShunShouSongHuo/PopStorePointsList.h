@@ -7,10 +7,17 @@
 //
 
 #import <UIKit/UIKit.h>
-typedef void(^OrderStorePopListCallBack)();
 #import "OrderStoreModel.h"
+@protocol PopStoreListDelegate <NSObject>
+@optional
+- (void)didSelectNaviWithStoreModel:(OrderStoreModel*)storeModel;
+- (void)didSelectDetailWithStoreModel:(OrderStoreModel*)storeModel;
+@end
+
+
 @interface PopStorePointsList : UIView
 @property (nonatomic, assign) BOOL isShow;
-- (void)showPopViewWith:(OrderStoreModel *)model andPopListCallBack:(OrderStorePopListCallBack)callback;
+@property (nonatomic, weak  ) id<PopStoreListDelegate> delegate;
+- (void)showPopViewWith:(OrderStoreModel *)model andPopStoreListDelegate:(id<PopStoreListDelegate>)delegate;
 - (void)hidden;
 @end

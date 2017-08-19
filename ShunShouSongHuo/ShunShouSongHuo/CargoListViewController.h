@@ -8,6 +8,10 @@
 
 #import "BaseViewController.h"
 
+typedef void(^CargoListCallBack)(BOOL isSucceed);
+
 @interface CargoListViewController : BaseViewController
+- (instancetype)initWithSelectStoreCount:(NSInteger)storeCount;
+- (instancetype)initWithSelectStoreIds:(NSArray *)storeIds andCallback:(CargoListCallBack)callback;
 
 @end

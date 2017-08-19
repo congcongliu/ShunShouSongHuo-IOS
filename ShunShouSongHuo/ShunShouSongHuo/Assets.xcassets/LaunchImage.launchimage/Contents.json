@@ -12,15 +12,6 @@
     {
       "extent" : "full-screen",
       "idiom" : "iphone",
-      "subtype" : "736h",
-      "filename" : "L_Default-EN-736h.png",
-      "minimum-system-version" : "8.0",
-      "orientation" : "landscape",
-      "scale" : "3x"
-    },
-    {
-      "extent" : "full-screen",
-      "idiom" : "iphone",
       "subtype" : "667h",
       "filename" : "Default-EN-667h.png",
       "minimum-system-version" : "8.0",

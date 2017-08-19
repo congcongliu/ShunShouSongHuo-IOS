@@ -18,10 +18,14 @@
 
 @interface OrderStoreMapView : UIView
 @property (nonatomic, weak) id<OrderStoreDelegate>delegate;
+@property (nonatomic, strong) NSMutableArray         *selectedStores;
+@property (nonatomic, assign) BOOL                   isRouted;//是否已规划
 - (instancetype)initWithFrame:(CGRect)frame andDelegate:(id<OrderStoreDelegate>)delegate;
 - (void)hiddenPopList;
 - (void)reloadData;
 - (void)showDriveRoute;
 - (void)startSelectStore;
 - (void)stopSelectStore;
+- (void)addStorageAnnotationView;
+- (NSInteger)getSeletedCount;
 @end

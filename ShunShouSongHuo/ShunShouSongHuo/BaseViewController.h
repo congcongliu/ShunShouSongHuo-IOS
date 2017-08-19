@@ -10,6 +10,7 @@
 #import "CCTool.h"
 #import "CCAlert.h"
 #import "Constant.h"
+#import <SDAutoLayout.h>
 #import "NSString+Tool.h"
 #import "CCNavigationBar.h"
 #import "NSDictionary+Tool.h"

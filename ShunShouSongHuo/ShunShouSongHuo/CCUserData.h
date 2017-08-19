@@ -39,9 +39,9 @@
 #define USER_PHONE_NUMBER      @"mobile_phone"
 #define USER_UPLOAD_LOCATION   @"user_upload_loaction"
 #define IS_ORANGE_PHOTO        @"is_orange_photo"
-#define FRESH_VEDIO_URL        @"fresh_vedio_url"
 #define USER_STORAGE_ADDRESS   @"user_storage_address"
 #define USER_STORAGE_LOCATION  @"user_storage_location"
+#define USER_DIY_URL           @"user_diy_url"
 
 
 void save_AppVersion(NSString* appVersion);
@@ -106,12 +106,11 @@ void save_isOrangePhoto(BOOL isOrange);
 BOOL isOrangePhoto();
 void save_NewInvaitationCode(NSString* invitationCode);
 NSString* newInvitation_Code();
-void save_freshVedioUrl(NSString* url);
-NSString* fresh_VedioUrl();
 void save_StorageAddress(NSString *storageAddress);
 NSString * storageAddress();
 void save_StorageLocation(NSArray *storageLocation);
 NSArray * storageLocation();
-
+void save_userDiyUrl(NSString* url);
+NSString* user_diyUrl();
 
 

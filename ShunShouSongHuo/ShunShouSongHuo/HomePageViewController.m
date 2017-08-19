@@ -7,25 +7,28 @@
 //
 
 #import "HomePageViewController.h"
-#import <SDAutoLayout.h>
 #import "UserLocation.h"
 #import "CCHTTPRequest.h"
 #import "OrderStoreMapView.h"
 #import "OrderStoreListView.h"
 #import "CustomIOSAlertView.h"
 #import "PopStorePointsList.h"
+#import "SettingViewController.h"
 #import "CargoListViewController.h"
 #import "NavigationViewController.h"
-@interface HomePageViewController ()<OrderStoreDelegate>{
-    NSInteger          _selectedIndex;
+#import "StoreDetailViewController.h"
+@interface HomePageViewController ()<OrderStoreDelegate,PopStoreListDelegate>{
+    NSInteger           _selectedIndex;
     OrderStoreMapView  *_storeMap;
     OrderStoreListView *_vaildStoreList;
     OrderStoreListView *_tokenStoreList;
     UIButton           *_cancelSelectButton;
     UIButton           *_completedSelectButton;
     UIButton           *_selectStoreButton;
+    UIView             *_bottomView;
 }
 @property (nonatomic, strong) UIScrollView           *contentView;
+@property (nonatomic, strong) OrderStoreMapView      *storeMap;
 @property (nonatomic, strong) PopStorePointsList     *popStorePointsList;//弹出列表
 @end
 
@@ -40,26 +43,39 @@
     [self addBottomView];
     [self initPopListView];
     [self getStorageInfo];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(tokenVaild)
+                                                 name:ACCESS_TOKEN_INVAILD_NOTI object:nil];
+    
 }
 
 - (void)viewWillAppear:(BOOL)animated{
     [super viewWillAppear:animated];
+    
+    if (!accessToken()||[accessToken() isEmpty]) {
+        [self tokenVaild];
+        return;
+    }
+    
     [[UserLocation defaultUserLoaction] getLoaction];
     switch (_selectedIndex) {
         case 0:
         {
             [_storeMap hiddenPopList];
             [_storeMap reloadData];
+            _bottomView.hidden = NO;
         }
             break;
         case 1:
         {
-            [_vaildStoreList reloadData];
+            [_tokenStoreList reloadData];
+            _bottomView.hidden = YES;
         }
             break;
         case 2:
         {
-            [_tokenStoreList reloadData];
+            [_vaildStoreList reloadData];
+            _bottomView.hidden = YES;
         }
             break;
         default:
@@ -69,7 +85,7 @@
 
 - (void)addNaviBar{
     
-    UISegmentedControl* segmented = [[UISegmentedControl alloc]initWithItems:@[@"地图模式",@"可领门店",@"已领门店"]];
+    UISegmentedControl* segmented = [[UISegmentedControl alloc]initWithItems:@[@"地图模式",@"已选门店",@"可选门店"]];
     segmented.selectedSegmentIndex = 0;
     segmented.layer.borderWidth = 2;
     segmented.layer.borderColor = [UIColor blackColor].CGColor;
@@ -86,23 +102,36 @@
     [self.view addSubview:naviBar];
     
     UIView* lineView = [[UIView alloc]initWithFrame:CGRectMake(0, 63.5, SYSTEM_WIDTH, 0.5)];
-    lineView.backgroundColor = [UIColor customGrayColor];
+    lineView.backgroundColor = [UIColor grayTextColor];
     [naviBar addSubview:lineView];
     
-    UIButton * orderListButton = [[UIButton alloc]initWithFrame:CGRectMake(SYSTEM_WIDTH - 70, 20, 60, 44)];
-    [orderListButton setTitle:@"装货清单" forState:UIControlStateNormal];
-//    [orderListButton setTitle:NSLocalizedString(@"cancel", nil) forState:UIControlStateSelected];
+    UIButton * orderListButton = [[UIButton alloc]initWithFrame:CGRectMake(SYSTEM_WIDTH - 60, 20, 60, 44)];
+    [orderListButton setTitle:@"清单" forState:UIControlStateNormal];
     orderListButton.titleLabel.font = [UIFont boldSystemFontOfSize:14];
     [orderListButton setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
     [orderListButton setTitleColor:[UIColor redColor] forState:UIControlStateSelected];
     [orderListButton addTarget:self action:@selector(gotoCargoList) forControlEvents:UIControlEventTouchUpInside];
     [naviBar addSubview:orderListButton];
+    
+    
+    UIButton *settingButton = [[UIButton alloc]initWithFrame:CGRectMake(0, SYSTEM_STATUS_BAR_HEIGHT, 44, 44)];
+    [settingButton setBackgroundImage:[UIImage imageNamed:@"setting_1"] forState:UIControlStateNormal];
+    [settingButton setBackgroundImage:[UIImage imageNamed:@"setting_0"] forState:UIControlStateHighlighted];
+    [settingButton addTarget:self action:@selector(gotoSetting) forControlEvents:UIControlEventTouchUpInside];
+    [naviBar addSubview:settingButton];
+}
+
+- (void)gotoSetting{
+    SettingViewController *setting = [[SettingViewController alloc]init];
+    [self.navigationController pushViewController:setting animated:YES];
 }
 
 - (void)gotoCargoList{
-    CargoListViewController *cargoList = [[CargoListViewController alloc]init];
-    UINavigationController *cargoNavi = [[UINavigationController alloc]initWithRootViewController:cargoList];
-    [self presentViewController:cargoNavi animated:YES completion:nil];
+//    CargoListViewController *cargoList = [[CargoListViewController alloc]init];
+//    UINavigationController *cargoNavi = [[UINavigationController alloc]initWithRootViewController:cargoList];
+//    [self presentViewController:cargoList animated:YES completion:nil];
+    CargoListViewController *cargoList = [[CargoListViewController alloc]initWithSelectStoreCount:[_storeMap getSeletedCount]];
+    [self.navigationController pushViewController:cargoList animated:YES];
 }
 
 -(void)didClicksegmentedControlAction:(UISegmentedControl *)Seg{
@@ -119,8 +148,11 @@
                 .topSpaceToView (self.view,SYSTEM_NAVI_HEIGHT)
                 .leftEqualToView (self.view)
                 .widthIs(SYSTEM_WIDTH*3)
-                .bottomSpaceToView(self.view,60);
+                .bottomSpaceToView(self.view,0);
                 [_contentView updateLayout];
+                _bottomView.hidden = NO;
+            } completion:^(BOOL finished) {
+                
             }];
             
         }
@@ -132,10 +164,11 @@
                 .topSpaceToView (self.view,SYSTEM_NAVI_HEIGHT)
                 .centerXEqualToView(self.view)
                 .widthIs(SYSTEM_WIDTH*3)
-                .bottomSpaceToView(self.view,60);
+                .bottomSpaceToView(self.view,0);
                 [_contentView updateLayout];
-            } completion:^(BOOL finished) {
-                [_vaildStoreList tableRefesh];
+                _bottomView.hidden = YES;
+            } completion:^(BOOL finished) {                
+                [_tokenStoreList tableRefesh];
             }];
         }
             break;
@@ -146,10 +179,11 @@
                 .topSpaceToView (self.view,SYSTEM_NAVI_HEIGHT)
                 .rightEqualToView(self.view)
                 .widthIs(SYSTEM_WIDTH*3)
-                .bottomSpaceToView(self.view,60);
+                .bottomSpaceToView(self.view,0);
                 [_contentView updateLayout];
+                _bottomView.hidden = YES;
             } completion:^(BOOL finished) {
-                [_tokenStoreList tableRefesh];
+                [_vaildStoreList tableRefesh];
             }];
         }
             break;
@@ -161,20 +195,26 @@
 }
 
 - (void)addMapAndListView{
-    _contentView = [[UIScrollView alloc]init];
-    _contentView.backgroundColor = UIColorFromRGB(0xf5f5f5);
-    [self.view addSubview:_contentView];
     
+    _contentView = [[UIScrollView alloc]init];
+    _contentView.backgroundColor = [UIColor clearColor];
+    
+    [self.view addSubview:_contentView];
     _contentView.sd_layout
     .topSpaceToView (self.view,SYSTEM_NAVI_HEIGHT)
     .leftEqualToView (self.view)
     .widthIs(SYSTEM_WIDTH*3)
-    .bottomSpaceToView(self.view,60);
+    .bottomSpaceToView(self.view,0);
     
-    _storeMap = [[OrderStoreMapView alloc]initWithFrame:CGRectMake(0, 0, SYSTEM_WIDTH, SYSTEM_HEIGHT-SYSTEM_NAVI_HEIGHT-60) andDelegate:self];
-    _vaildStoreList = [[OrderStoreListView alloc]initVaildStoreListWithFrame:CGRectMake(SYSTEM_WIDTH, 0, SYSTEM_WIDTH, SYSTEM_HEIGHT-SYSTEM_NAVI_HEIGHT-60) andSeletedCallBack:^(OrderStoreModel *storeModel) {
+    _storeMap = [[OrderStoreMapView alloc] initWithFrame:CGRectMake(0, 0, SYSTEM_WIDTH, SYSTEM_HEIGHT-SYSTEM_NAVI_HEIGHT-60) andDelegate:self];
+    
+    CCWeakSelf(self);
+    _tokenStoreList = [[OrderStoreListView alloc] initTokenStoreListWithFrame:CGRectMake(SYSTEM_WIDTH, 0, SYSTEM_WIDTH, SYSTEM_HEIGHT-SYSTEM_NAVI_HEIGHT) andSeletedCallBack:^(OrderStoreModel *storeModel) {
+        [weakself gotoStoreDetail:storeModel];
     }];
-    _tokenStoreList = [[OrderStoreListView alloc]initTokenStoreListWithFrame:CGRectMake(SYSTEM_WIDTH*2, 0, SYSTEM_WIDTH, SYSTEM_HEIGHT-SYSTEM_NAVI_HEIGHT-60) andSeletedCallBack:^(OrderStoreModel *storeModel) {
+    
+    _vaildStoreList = [[OrderStoreListView alloc] initVaildStoreListWithFrame:CGRectMake(SYSTEM_WIDTH*2, 0, SYSTEM_WIDTH, SYSTEM_HEIGHT-SYSTEM_NAVI_HEIGHT) andSeletedCallBack:^(OrderStoreModel *storeModel) {
+        [weakself gotoStoreDetail:storeModel];
     }];
     [_contentView addSubview:_storeMap];
     [_contentView addSubview:_vaildStoreList];
@@ -184,12 +224,12 @@
 #pragma mark -----------> 门店选择模块
 - (void)addBottomView{
     
-    UIView *bottomView = [[UIView alloc]initWithFrame:CGRectMake(0, SYSTEM_HEIGHT-60, SYSTEM_WIDTH, 60)];
-    bottomView.backgroundColor = [UIColor whiteColor];
-    [self.view addSubview:bottomView];
+    _bottomView = [[UIView alloc]initWithFrame:CGRectMake(0, SYSTEM_HEIGHT-60, SYSTEM_WIDTH, 60)];
+    _bottomView.backgroundColor = [UIColor whiteColor];
+    [self.view addSubview:_bottomView];
     UIView *lineView = [[UIView alloc]initWithFrame:CGRectMake(0, 0, SYSTEM_WIDTH, 0.5)];
-    lineView.backgroundColor = [UIColor customGrayColor];
-    [bottomView addSubview:lineView];
+    lineView.backgroundColor = [UIColor grayTextColor];
+    [_bottomView addSubview:lineView];
     
     _cancelSelectButton = [UIButton buttonWithType:UIButtonTypeCustom];
     _cancelSelectButton.clipsToBounds = YES;
@@ -202,7 +242,7 @@
     [_cancelSelectButton setBackgroundImage:[UIImage imageNamed:@"F5F5F5"] forState:UIControlStateHighlighted];
     _cancelSelectButton.hidden = YES;
     [_cancelSelectButton addTarget:self action:@selector(cancelSelectStore) forControlEvents:UIControlEventTouchUpInside];
-    [bottomView addSubview:_cancelSelectButton];
+    [_bottomView addSubview:_cancelSelectButton];
     
     _completedSelectButton = [UIButton buttonWithType:UIButtonTypeCustom];
     _completedSelectButton.clipsToBounds = YES;
@@ -213,7 +253,7 @@
     [_completedSelectButton setBackgroundImage:[UIImage imageNamed:@"cc2f27"] forState:UIControlStateHighlighted];
     _completedSelectButton.hidden = YES;
     [_completedSelectButton addTarget:self action:@selector(completedSelectStore) forControlEvents:UIControlEventTouchUpInside];
-    [bottomView addSubview:_completedSelectButton];
+    [_bottomView addSubview:_completedSelectButton];
     
     _selectStoreButton = [UIButton buttonWithType:UIButtonTypeCustom];
     _selectStoreButton.clipsToBounds = YES;
@@ -223,25 +263,25 @@
     _selectStoreButton.backgroundColor = UIColorFromRGB(0xFF3B30);
     [_selectStoreButton setBackgroundImage:[UIImage imageNamed:@"cc2f27"] forState:UIControlStateHighlighted];
     [_selectStoreButton addTarget:self action:@selector(selectStoreClick) forControlEvents:UIControlEventTouchUpInside];
-    [bottomView addSubview:_selectStoreButton];
+    [_bottomView addSubview:_selectStoreButton];
     
     _cancelSelectButton.sd_layout
     .heightIs(40)
-    .centerYEqualToView(bottomView)
-    .leftSpaceToView(bottomView,15)
+    .centerYEqualToView(_bottomView)
+    .leftSpaceToView(_bottomView,15)
     .widthIs((SYSTEM_WIDTH)/3);
     
     _completedSelectButton.sd_layout
     .heightIs(40)
-    .centerYEqualToView(bottomView)
+    .centerYEqualToView(_bottomView)
     .leftSpaceToView(_cancelSelectButton,10)
-    .rightSpaceToView(bottomView,15);
+    .rightSpaceToView(_bottomView,15);
     
     _selectStoreButton.sd_layout
     .heightIs(40)
-    .centerYEqualToView(bottomView)
-    .leftSpaceToView(bottomView,15)
-    .rightSpaceToView(bottomView,15);
+    .centerYEqualToView(_bottomView)
+    .leftSpaceToView(_bottomView,15)
+    .rightSpaceToView(_bottomView,15);
 }
 
 
@@ -253,8 +293,19 @@
 }
 
 - (void)completedSelectStore{
-    [_storeMap showDriveRoute];
-    [self gotoCargoList];
+    
+    if (_storeMap.selectedStores.count==0) {
+        toast_showInfoMsg(@"请至少选择一家门店", 200);
+        return;
+    }
+    
+    CCWeakSelf(self);
+    CargoListViewController *cargoList = [[CargoListViewController alloc]initWithSelectStoreIds:_storeMap.selectedStores andCallback:^(BOOL isSucceed) {
+        [weakself cancelSelectStore];
+    }];
+//    UINavigationController *cargoNavi = [[UINavigationController alloc]initWithRootViewController:cargoList];
+//    [self presentViewController:cargoList animated:YES completion:nil];
+    [self.navigationController pushViewController:cargoList animated:YES];
 }
 
 - (void)cancelSelectStore{
@@ -264,6 +315,13 @@
     [_storeMap stopSelectStore];
 }
 
+//- (void)reSelectStoreSucceed{
+////    _selectStoreButton.hidden = NO;
+////    _cancelSelectButton.hidden = YES;
+////    _completedSelectButton.hidden = YES;
+////    _storeMap.isRouted = NO;
+////    [_storeMap stopSelectStore];
+//}
 
 #pragma mark ----------> 门店详情弹框模块
 - (void)initPopListView{
@@ -271,39 +329,59 @@
     [self.view addSubview:_popStorePointsList];
 }
 
-#pragma mark ----------> orderMapDelegate
+#pragma mark ----------> orderMapDelegate 地图选点回调
 
 - (void)didSeletedStore:(OrderStoreModel *)storeModel{
-    
-    CCWeakSelf(self);
-    [_popStorePointsList showPopViewWith:storeModel andPopListCallBack:^{
-        NavigationViewController *navigation = [[NavigationViewController alloc] initWithStoreModel:storeModel];
-        [weakself.navigationController pushViewController:navigation animated:YES];
-    }];
+    [_popStorePointsList showPopViewWith:storeModel andPopStoreListDelegate:self];
+}
+- (void)didDeseletedStore{
+    [_popStorePointsList hidden];
 }
 
+- (void)didSelectNaviWithStoreModel:(OrderStoreModel *)storeModel{
+    NavigationViewController *navi = [[NavigationViewController alloc]initWithStoreModel:storeModel];
+    [self.navigationController pushViewController:navi animated:YES];
+}
 
+- (void)didSelectDetailWithStoreModel:(OrderStoreModel *)storeModel{
+    [self gotoStoreDetail:storeModel];
+}
+
+- (void)gotoStoreDetail:(OrderStoreModel *)storeModel{
+    StoreDetailViewController *detail = [[StoreDetailViewController alloc] initWithStoreModel:storeModel];
+    [self.navigationController pushViewController:detail animated:YES];
+}
 
 #pragma mark ------------> 获取仓库信息
 - (void)getStorageInfo{
     NSMutableDictionary *parameters = [[NSMutableDictionary alloc]init];
     [parameters put:accessToken() key:ACCESS_TOKEN];
+    CCWeakSelf(self);
     [[CCHTTPRequest requestManager] getWithRequestBodyString:USER_GET_STORAGE parameters:parameters resultBlock:^(NSDictionary *result, NSError *error) {
         if (!error) {
             NSDictionary *warehouse = [result objectForKey:@"warehouse"];
             save_StorageAddress([warehouse stringForKey:@"address"]);
             save_StorageLocation([warehouse objectForKey:@"location"]);
+            [weakself.storeMap addStorageAnnotationView];
         }
     }];
-}
-- (void)didDeseletedStore{
-    [_popStorePointsList hidden];
 }
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
 }
+
+- (void)tokenVaild{
+    [self performSelector:@selector(naviBack) withObject:nil afterDelay:3];
+}
+
+- (void)naviBack{
+    [self.navigationController popToRootViewControllerAnimated:YES];
+}
+
+
+
 
 /*
 #pragma mark - Navigation

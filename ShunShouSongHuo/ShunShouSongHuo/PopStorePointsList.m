@@ -5,19 +5,20 @@
 //  Created by CongCong on 16/8/8.
 //  Copyright © 2016年 CongCong. All rights reserved.
 //
-#define kAllMissionCellHeight 120.0
+#define kAllMissionCellHeight 125.0
 #define kPopHeaderHight 36.0
 #import "Constant.h"
+#import <SDAutoLayout.h>
+#import "UserLocation.h"
 #import "UIButton+Block.h"
 #import "StorePointCell.h"
+#import <MAMapKit/MAMapKit.h>
 #import "PopStorePointsList.h"
-
 @interface PopStorePointsList ()<UITableViewDataSource,UITableViewDelegate>{
     UITableView *_tabView;
     UILabel *_headerLable;
 }
 @property (nonatomic, strong) NSMutableArray *dataArray;
-@property (nonatomic, copy  ) OrderStorePopListCallBack callback;
 @end
 
 @implementation PopStorePointsList
@@ -35,15 +36,15 @@
     _tabView.dataSource= self;
     _tabView.separatorStyle = UITableViewCellSeparatorStyleNone;
     _tabView.scrollEnabled = NO;
+    _tabView.rowHeight = 65;
     [_tabView registerNib:[UINib nibWithNibName:@"StorePointCell" bundle:[NSBundle mainBundle]] forCellReuseIdentifier:@"StorePointCell"];
     [self addSubview:_tabView];
+    
     UIView *headerView = [[UIView alloc]initWithFrame:CGRectMake(0, 0,SYSTEM_WIDTH, kPopHeaderHight)];
     headerView.backgroundColor = UIColorFromRGB(0xffce04)
-    
     UIView *lineView = [[UIView alloc]initWithFrame:CGRectMake(0, 0, SYSTEM_WIDTH, 0.5)];
     lineView.backgroundColor = [UIColor blackColor];
     [headerView addSubview:lineView];
-    
 
     _headerLable = [[UILabel alloc]initWithFrame:CGRectMake(15, 0, SYSTEM_WIDTH-30, kPopHeaderHight)];
     _headerLable.font = [UIFont boldSystemFontOfSize:12];
@@ -56,18 +57,10 @@
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
     return _dataArray.count;
 }
-- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
-    return kAllMissionCellHeight;
-}
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
     StorePointCell *cell = [tableView dequeueReusableCellWithIdentifier:@"StorePointCell" forIndexPath:indexPath];
     OrderStoreModel *model = [self.dataArray objectAtIndex:indexPath.row];
-    CCWeakSelf(self);
-    [cell showOrderCellWithStore:model andStoreNaviCallBack:^{
-        if (weakself.callback) {
-            weakself.callback();
-        }
-    }];
+    [cell showOrderCellWithStore:model];
     return cell;
 }
 
@@ -75,9 +68,65 @@
     
 }
 
-- (void)showPopViewWith:(OrderStoreModel *)model andPopListCallBack:(OrderStorePopListCallBack)callback{
-    self.callback = callback;
+- (UIView *)tabelFooterView{
+    UIView *footerView = [[UIView alloc]initWithFrame:CGRectMake(0, 0, SYSTEM_WIDTH, 60)];
+    footerView.backgroundColor = [UIColor whiteColor];
+    
+    UIButton * naviButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    naviButton.clipsToBounds = YES;
+    naviButton.layer.cornerRadius = 20;
+    naviButton.layer.borderColor = [UIColor blackColor].CGColor;
+    naviButton.layer.borderWidth = 2;
+    naviButton.titleLabel.font = [UIFont boldSystemFontOfSize:15];
+    [naviButton setTitle:[NSString stringWithFormat:@"导航%@",[self getDistance]] forState:UIControlStateNormal];
+    [naviButton setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+    [naviButton setBackgroundImage:[UIImage imageNamed:@"F5F5F5"] forState:UIControlStateHighlighted];
+    [naviButton addTarget:self action:@selector(naviButtonClick) forControlEvents:UIControlEventTouchUpInside];
+    [footerView addSubview:naviButton];
+    
+    UIButton * detailButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    detailButton.clipsToBounds = YES;
+    detailButton.layer.cornerRadius = 20;
+    detailButton.titleLabel.font = [UIFont boldSystemFontOfSize:15];
+    [detailButton setTitle:@"门店订单" forState:UIControlStateNormal];
+    
+    detailButton.backgroundColor = UIColorFromRGB(0xFF3B30);
+    [detailButton setBackgroundImage:[UIImage imageNamed:@"cc2f27"] forState:UIControlStateHighlighted];
+    [detailButton addTarget:self action:@selector(deatilButtonClick) forControlEvents:UIControlEventTouchUpInside];
+    [footerView addSubview:detailButton];
+    
+    naviButton.sd_layout
+    .heightIs(40)
+    .centerYEqualToView(footerView)
+    .leftSpaceToView(footerView,15)
+    .widthIs((SYSTEM_WIDTH-45)/2);
+    
+    detailButton.sd_layout
+    .heightIs(40)
+    .centerYEqualToView(footerView)
+    .leftSpaceToView(naviButton,15)
+    .rightSpaceToView(footerView,15);
+
+    return footerView;
+}
+
+
+- (void)naviButtonClick{
+    if ([self.delegate respondsToSelector:@selector(didSelectNaviWithStoreModel:)]) {
+        [self.delegate didSelectNaviWithStoreModel:self.dataArray[0]];
+    }
+}
+
+- (void)deatilButtonClick{
+    if ([self.delegate respondsToSelector:@selector(didSelectDetailWithStoreModel:)]) {
+        [self.delegate didSelectDetailWithStoreModel:self.dataArray[0]];
+    }
+}
+
+- (void)showPopViewWith:(OrderStoreModel *)model andPopStoreListDelegate:(id<PopStoreListDelegate>)delegate;{
+    self.delegate = delegate;
     [self addNewModel:model];
+    _tabView.tableFooterView = [self tabelFooterView];
 }
 
 
@@ -111,6 +160,23 @@
         } completion:nil];
     }
     self.isShow = YES;
+}
+
+- (NSString *)getDistance{
+    
+    OrderStoreModel *storeModel = [self.dataArray objectAtIndex:0];
+    
+    NSNumber *lat = storeModel.location[1];
+    NSNumber *log = storeModel.location[0];
+    MAMapPoint point1 = MAMapPointForCoordinate([[UserLocation defaultUserLoaction] userLoaction]);
+    MAMapPoint point2 = MAMapPointForCoordinate(CLLocationCoordinate2DMake(lat.floatValue,log.floatValue));
+    //2.计算距离
+    CGFloat distance = MAMetersBetweenMapPoints(point1,point2);
+    if (distance>1000) {
+        return [NSString stringWithFormat:@"（%.2f公里）",distance/1000.00];
+    }else{
+        return [NSString stringWithFormat:@"（%.0f米）",distance];
+    }
 }
 
 

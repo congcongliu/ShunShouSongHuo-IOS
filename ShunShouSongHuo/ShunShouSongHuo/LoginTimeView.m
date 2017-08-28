@@ -60,7 +60,7 @@
     }
     [self addSubview:maskView];
     
-    _second = 2;
+    _second = 3;
     
     _timeButton = [[UIButton alloc]initWithFrame:CGRectMake(SYSTEM_WIDTH-80, SYSTEM_HEIGHT-50, 60, 30)];
     _timeButton.clipsToBounds = YES;
@@ -69,7 +69,7 @@
     _timeButton.layer.borderColor = [UIColor blackColor].CGColor;
     _timeButton.titleLabel.font = [UIFont systemFontOfSize:12];
     [_timeButton setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
-    [_timeButton setTitle:[NSString stringWithFormat:@"%@ 2s",NSLocalizedString(@"skip", nil)] forState:UIControlStateNormal];
+    [_timeButton setTitle:[NSString stringWithFormat:@"%@ 3s",NSLocalizedString(@"skip", nil)] forState:UIControlStateNormal];
     _timer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(clockRun) userInfo:nil repeats:YES];
     [_timeButton addTarget:self action:@selector(hidden) forControlEvents:UIControlEventTouchUpInside];
     [self addSubview:_timeButton];

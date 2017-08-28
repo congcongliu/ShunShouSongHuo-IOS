@@ -21,6 +21,8 @@
 		BB1056201F3DD69F001FFD1E /* TakePhotosObjectModel.m in Sources */ = {isa = PBXBuildFile; fileRef = BB10561F1F3DD69F001FFD1E /* TakePhotosObjectModel.m */; };
 		BB1056231F3DDAE2001FFD1E /* PhotoDetailViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = BB1056221F3DDAE2001FFD1E /* PhotoDetailViewController.m */; };
 		BB2D0F2F1F42B209006D6427 /* RecordVoiceModel.m in Sources */ = {isa = PBXBuildFile; fileRef = BB2D0F2E1F42B209006D6427 /* RecordVoiceModel.m */; };
+		BB42B7161F4A8352009A69F7 /* Crashlytics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BB42B7141F4A8352009A69F7 /* Crashlytics.framework */; };
+		BB42B7171F4A8352009A69F7 /* Fabric.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BB42B7151F4A8352009A69F7 /* Fabric.framework */; };
 		BB45B63F1F414EB000DB8593 /* CCVoiceUploadManager.m in Sources */ = {isa = PBXBuildFile; fileRef = BB45B63E1F414EB000DB8593 /* CCVoiceUploadManager.m */; };
 		BB45B6421F415AB200DB8593 /* CCTimerServer.m in Sources */ = {isa = PBXBuildFile; fileRef = BB45B6411F415AB200DB8593 /* CCTimerServer.m */; };
 		BB45B6451F41609100DB8593 /* CCESignatureView.m in Sources */ = {isa = PBXBuildFile; fileRef = BB45B6441F41609100DB8593 /* CCESignatureView.m */; };
@@ -198,6 +200,8 @@
 		BB1056221F3DDAE2001FFD1E /* PhotoDetailViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PhotoDetailViewController.m; sourceTree = "<group>"; };
 		BB2D0F2D1F42B209006D6427 /* RecordVoiceModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RecordVoiceModel.h; sourceTree = "<group>"; };
 		BB2D0F2E1F42B209006D6427 /* RecordVoiceModel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RecordVoiceModel.m; sourceTree = "<group>"; };
+		BB42B7141F4A8352009A69F7 /* Crashlytics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Crashlytics.framework; sourceTree = "<group>"; };
+		BB42B7151F4A8352009A69F7 /* Fabric.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Fabric.framework; sourceTree = "<group>"; };
 		BB45B63D1F414EB000DB8593 /* CCVoiceUploadManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CCVoiceUploadManager.h; sourceTree = "<group>"; };
 		BB45B63E1F414EB000DB8593 /* CCVoiceUploadManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CCVoiceUploadManager.m; sourceTree = "<group>"; };
 		BB45B6401F415AB200DB8593 /* CCTimerServer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CCTimerServer.h; sourceTree = "<group>"; };
@@ -425,7 +429,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BB42B7161F4A8352009A69F7 /* Crashlytics.framework in Frameworks */,
 				3FF0C327BEE1B37728038015 /* libPods-ShunShouSongHuo.a in Frameworks */,
+				BB42B7171F4A8352009A69F7 /* Fabric.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -520,6 +526,15 @@
 				BB1056091F3DA8ED001FFD1E /* OrderRemarkViewController.m */,
 			);
 			name = "订单备注";
+			sourceTree = "<group>";
+		};
+		BB42B7181F4A835E009A69F7 /* Fabric */ = {
+			isa = PBXGroup;
+			children = (
+				BB42B7141F4A8352009A69F7 /* Crashlytics.framework */,
+				BB42B7151F4A8352009A69F7 /* Fabric.framework */,
+			);
+			name = Fabric;
 			sourceTree = "<group>";
 		};
 		BB45B64E1F41B73700DB8593 /* 定制页面 */ = {
@@ -709,6 +724,7 @@
 		BB5092CD1F35989500D8DB30 /* 第三方库 */ = {
 			isa = PBXGroup;
 			children = (
+				BB42B7181F4A835E009A69F7 /* Fabric */,
 				BBC7DA061F3F156D00B34621 /* UIAlertCatgroy */,
 				BBC7DA021F3F137500B34621 /* LVRecordTool */,
 				BBC7D9F21F3F07C400B34621 /* JDStatusBarNotification */,
@@ -1139,6 +1155,7 @@
 				BB5092401F345E6500D8DB30 /* Resources */,
 				49D079E1203137374C417215 /* 📦 Embed Pods Frameworks */,
 				2AD401E1280D28832C9B40BC /* 📦 Copy Pods Resources */,
+				BB42B7191F4A83F0009A69F7 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -1324,6 +1341,19 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-ShunShouSongHuo/Pods-ShunShouSongHuo-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		BB42B7191F4A83F0009A69F7 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "./ShunShouSongHuo/Fabric.framework/run 61cf4e1887e8894345852aa6dc9c12bf55205da3 022923131f84265ce022a9a36385dbecccac7658b474539a1d8b9392bb2d8d97";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -1516,6 +1546,10 @@
 				DEFINES_MODULE = NO;
 				DEVELOPMENT_TEAM = 7N9S85DJ7J;
 				ENABLE_BITCODE = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/ShunShouSongHuo",
+				);
 				INFOPLIST_FILE = ShunShouSongHuo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -1537,6 +1571,10 @@
 				DEFINES_MODULE = NO;
 				DEVELOPMENT_TEAM = 7N9S85DJ7J;
 				ENABLE_BITCODE = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/ShunShouSongHuo",
+				);
 				INFOPLIST_FILE = ShunShouSongHuo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";

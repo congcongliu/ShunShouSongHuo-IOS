@@ -8,7 +8,8 @@
 
 
 #define APPVERSION @"100000"
-#define BASE_URL @"https://zhuzhu1688.com"   //测试服务器
+//#define BASE_URL @"https://zhuzhu1688.com"   //测试服务器
+#define BASE_URL @"https://agilepops.com"   //测试服务器
 //#define BASE_URL @"http://192.168.3.129:4002"   //本地服务器
 
 

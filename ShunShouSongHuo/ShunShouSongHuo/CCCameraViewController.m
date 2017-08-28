@@ -90,7 +90,9 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
     // Do any additional setup after loading the view.
+    
     self.title = @"自定义相机";
     self.view.backgroundColor = [UIColor whiteColor];
     serialQueue=dispatch_queue_create("myThreadQueueImageZip", DISPATCH_QUEUE_SERIAL);

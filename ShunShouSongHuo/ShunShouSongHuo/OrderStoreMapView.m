@@ -676,6 +676,7 @@ static const NSInteger RoutePlanningPaddingEdge = 20;
     _drawLineButton.selected = NO;
     [_drawLineView removeFromSuperview];
     _drawLineView = nil;
+    [self reloadData];
 }
 
 - (void)dealloc{

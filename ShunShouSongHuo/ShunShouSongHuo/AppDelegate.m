@@ -8,9 +8,11 @@
 
 #import "AppDelegate.h"
 #import "CCTimerServer.h"
+#import <Fabric/Fabric.h>
 #import "LoginViewController.h"
 #import "CCPhotoUploadManager.h"
 #import "CCVoiceUploadManager.h"
+#import <Crashlytics/Crashlytics.h>
 #import <AMapFoundationKit/AMapFoundationKit.h>
 @interface AppDelegate ()
 
@@ -30,6 +32,8 @@
     self.window.rootViewController = navi;
     [self.window makeKeyAndVisible];
     [AMapServices sharedServices].apiKey = @"4b19fafc3b6447a1bda4d25c464f8176";
+    [Fabric with:@[[Crashlytics class]]];//崩溃分析
+//    [[Crashlytics sharedInstance] crash];
     return YES;
 }
 
